@@ -1,0 +1,16 @@
+# GenLayer test + network configuration.
+# Direct-mode tests need no network. Integration tests and deploys target Bradbury.
+networks:
+  default: testnet_bradbury
+  testnet_bradbury:
+    url: "https://rpc-bradbury.genlayer.com"
+    # Keys are supplied via environment variables — never hardcode them here.
+    accounts:
+      - "${ACCOUNT_PRIVATE_KEY}"
+    from: "${ACCOUNT_PRIVATE_KEY}"
+
+paths:
+  contracts: "contract"
+  artifacts: "artifacts"
+
+environment: .env
