@@ -475,6 +475,64 @@ h3 {
   color: var(--misleading);
 }
 
+/* ---- Request status timeline ---- */
+.steps {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  font-family: var(--mono);
+  font-size: 13px;
+}
+.steps li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--faint);
+}
+.steps .st-mark {
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border-strong);
+  border-radius: 50%;
+  font-size: 11px;
+}
+.steps .st-done {
+  color: var(--accurate);
+}
+.steps .st-done .st-mark {
+  border-color: var(--accurate);
+  color: var(--accurate);
+}
+.steps .st-active {
+  color: var(--text);
+}
+.steps .st-active .st-mark {
+  border-color: var(--accent);
+  color: var(--accent);
+  animation: pulse 1s ease-in-out infinite;
+}
+.steps .st-err {
+  color: var(--misleading);
+}
+.steps .st-err .st-mark {
+  border-color: var(--misleading);
+  color: var(--misleading);
+}
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+
 /* ---- Code + methods ---- */
 .code {
   border: 1px solid var(--border);

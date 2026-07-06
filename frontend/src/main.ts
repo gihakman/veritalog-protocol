@@ -6,7 +6,9 @@ import {
   requestAttestation,
   connectWallet,
   hasWallet,
+  explainError,
   type AttestationView,
+  type RequestStage,
 } from "./genlayer";
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string): T =>
@@ -162,21 +164,62 @@ function wireRequest(): void {
     const base = $<HTMLInputElement>("r-base").value.trim();
     const head = $<HTMLInputElement>("r-head").value.trim();
     const changelog = $<HTMLInputElement>("r-changelog").value.trim();
+    const explorer = deployment?.explorer ?? "";
 
-    result.hidden = false;
-    result.classList.remove("error");
-    result.innerHTML = `<p class="msg">Submitting transaction. Confirm in your wallet, then validators will judge the release…</p>`;
+    // Live status timeline. Each stage flips the matching step to done.
+    const steps: Array<{ key: RequestStage; label: string }> = [
+      { key: "signing", label: "Sign in wallet" },
+      { key: "submitted", label: "Submitted to Bradbury" },
+      { key: "confirming", label: "Validators judging" },
+      { key: "accepted", label: "Verdict on-chain" },
+    ];
+    let txHash = "";
+    let note = "Confirm the transaction in your wallet.";
+
+    const render = (activeIndex: number, failed = false): void => {
+      const rows = steps
+        .map((s, i) => {
+          const state =
+            failed && i === activeIndex
+              ? "err"
+              : i < activeIndex
+                ? "done"
+                : i === activeIndex
+                  ? failed
+                    ? "err"
+                    : "active"
+                  : "todo";
+          const mark = state === "done" ? "✓" : state === "err" ? "✕" : state === "active" ? "•" : "·";
+          return `<li class="st-${state}"><span class="st-mark">${mark}</span>${s.label}</li>`;
+        })
+        .join("");
+      const txLine = txHash
+        ? `<dl><dt>tx</dt><dd>${explorer ? `<a href="${explorer}/tx/${esc(txHash)}" target="_blank" rel="noreferrer">${esc(txHash)}</a>` : esc(txHash)}</dd></dl>`
+        : "";
+      result.classList.toggle("error", failed);
+      result.innerHTML = `<ul class="steps">${rows}</ul><p class="msg">${esc(note)}</p>${txLine}`;
+      result.hidden = false;
+    };
+
+    const stageIndex = (stage: RequestStage): number => steps.findIndex((s) => s.key === stage);
+
     submitBtn.disabled = true;
+    render(0);
     try {
-      const tx = await requestAttestation(walletAddress, owner, repo, base, head, changelog);
-      const explorer = deployment?.explorer ?? "";
-      result.innerHTML =
-        `<p class="msg">Request accepted. The verdict for ` +
-        `<span class="mono">${esc(owner)}/${esc(repo)}@${esc(head)}</span> is now on-chain.</p>` +
-        `<dl><dt>tx</dt><dd>${explorer ? `<a href="${explorer}/tx/${esc(tx)}" target="_blank" rel="noreferrer">${esc(tx)}</a>` : esc(tx)}</dd></dl>`;
+      await requestAttestation(walletAddress, owner, repo, base, head, changelog, (p) => {
+        txHash = p.txHash ?? txHash;
+        note = p.message;
+        render(stageIndex(p.stage));
+      });
+      note = `Attestation for ${owner}/${repo}@${head} is recorded. Reading it back…`;
+      render(steps.length - 1);
       void doLookup(owner, repo, head, $("verify-result"));
+      $("verify-result").scrollIntoView({ behavior: "smooth", block: "center" });
     } catch (err) {
-      showError(result, err instanceof Error ? err.message : String(err));
+      // Figure out which step was in flight to mark it failed.
+      const failedAt = txHash ? stageIndex("confirming") : stageIndex("signing");
+      note = explainError(err);
+      render(failedAt, true);
     } finally {
       submitBtn.disabled = false;
     }
