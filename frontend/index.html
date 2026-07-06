@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>VeritaLog · Trustless changelog attestation on GenLayer</title>
+    <meta
+      name="description"
+      content="VeritaLog checks whether a software release's changelog matches its actual code diff, and records a validator-attested verdict on-chain."
+    />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link
+      rel="preconnect"
+      href="https://fonts.googleapis.com"
+    />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <!-- Top bar -->
+    <header class="topbar">
+      <a class="wordmark" href="#top" aria-label="VeritaLog home">
+        <svg class="seal" width="24" height="24" viewBox="0 0 64 64" aria-hidden="true">
+          <path d="M32 9 51 20 51 44 32 55 13 44 13 20Z" fill="none" stroke="#232a26" stroke-width="2" />
+          <path d="M32 14.5 46.2 22.75 46.2 41.25 32 49.5 17.8 41.25 17.8 22.75Z" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round" />
+          <path d="M25 33.5 30.2 39 41 26.5" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <span>VeritaLog</span>
+      </a>
+      <nav class="nav">
+        <a href="#how">How it works</a>
+        <a href="#verify">Verify</a>
+        <a href="#request">Request</a>
+        <a href="#integrate">Integrate</a>
+        <a
+          class="gh"
+          href="https://github.com/gihakman/veritalog-protocol"
+          target="_blank"
+          rel="noreferrer"
+          aria-label="VeritaLog on GitHub"
+          title="Source on GitHub"
+        >
+          <svg width="18" height="18" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+            <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
+          </svg>
+        </a>
+      </nav>
+      <div class="net" id="net-badge" title="Deployment network">
+        <span class="dot"></span><span id="net-label">Testnet Bradbury</span>
+      </div>
+    </header>
+
+    <main id="top">
+      <!-- Hero -->
+      <section class="hero">
+        <p class="kicker">SOFTWARE SUPPLY-CHAIN INTEGRITY</p>
+        <h1>
+          Verify that a release's changelog<br />matches the code it shipped.
+        </h1>
+        <p class="lede">
+          VeritaLog fetches a repository's published changelog and the actual
+          git diff between two tags, has independent GenLayer validators judge
+          whether the changelog describes the diff, and records the verdict
+          on-chain. No single party is trusted in the pipeline.
+        </p>
+
+        <form class="lookup" id="hero-form" autocomplete="off">
+          <div class="lookup-fields">
+            <input id="h-owner" placeholder="owner" aria-label="owner" />
+            <span class="sep">/</span>
+            <input id="h-repo" placeholder="repo" aria-label="repo" />
+            <span class="sep">@</span>
+            <input id="h-version" placeholder="v2.0.0" aria-label="version" />
+          </div>
+          <button type="submit" class="btn">Look up verdict</button>
+        </form>
+        <div id="hero-result" class="hero-result" hidden></div>
+        <p class="stat" id="corpus-stat"></p>
+      </section>
+
+      <!-- Problem -->
+      <section class="band" id="problem">
+        <h2>The gap</h2>
+        <div class="cols">
+          <p>
+            A changelog is written by the same party that controls the code.
+            There is no separation of duties, so a release can understate or
+            omit what actually changed. Downstream consumers read the changelog
+            to decide whether to upgrade, with no independent check.
+          </p>
+          <p>
+            The XZ Utils 5.6.0 release contained a backdoor. Its release notes
+            said nothing meaningful about it. Signing tools like cosign prove
+            <em>who</em> published an artifact. They do not evaluate whether the
+            release notes are <em>honest</em> about the diff. That semantic gap
+            is what VeritaLog closes.
+          </p>
+        </div>
+      </section>
+
+      <!-- How it works -->
+      <section class="band" id="how">
+        <h2>How it works</h2>
+        <ol class="pipeline">
+          <li>
+            <span class="step">01</span>
+            <h3>Submit coordinates</h3>
+            <p>
+              A requester provides the repository, the before tag, the after
+              tag, and the changelog URL. VeritaLog derives the diff URL from
+              GitHub's public compare endpoint.
+            </p>
+          </li>
+          <li>
+            <span class="step">02</span>
+            <h3>Fetch evidence</h3>
+            <p>
+              The leader validator fetches the unified diff and the changelog
+              text directly from the web. Both are public, so every validator
+              can fetch the same sources independently.
+            </p>
+          </li>
+          <li>
+            <span class="step">03</span>
+            <h3>Judge the match</h3>
+            <p>
+              An LLM reads the diff and changelog as evidence and returns one
+              verdict: ACCURATE, PARTIAL, or MISLEADING, with a short reason.
+            </p>
+          </li>
+          <li>
+            <span class="step">04</span>
+            <h3>Reach consensus</h3>
+            <p>
+              Validators re-run the judgment and agree only when the verdict
+              matches. The reason text may differ. The agreed verdict is stored
+              on-chain and can be appealed.
+            </p>
+          </li>
+        </ol>
+      </section>
+
+      <!-- Verdict scale -->
+      <section class="band" id="verdicts">
+        <h2>The verdict scale</h2>
+        <p class="section-lede">
+          Consensus is reached on this enum, not on prose. These four values are
+          the entire vocabulary of an attestation.
+        </p>
+        <div class="verdict-grid">
+          <div class="verdict v-accurate">
+            <span class="badge">ACCURATE</span>
+            <p>The changelog adequately describes the code changes.</p>
+          </div>
+          <div class="verdict v-partial">
+            <span class="badge">PARTIAL</span>
+            <p>The changelog mentions some changes but omits significant ones.</p>
+          </div>
+          <div class="verdict v-misleading">
+            <span class="badge">MISLEADING</span>
+            <p>The changelog misrepresents or hides critical changes.</p>
+          </div>
+          <div class="verdict v-unverified">
+            <span class="badge">UNVERIFIED</span>
+            <p>No attestation exists yet for this repository and version.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Verify panel -->
+      <section class="band" id="verify">
+        <h2>Verify an attestation</h2>
+        <p class="section-lede">
+          Read the on-chain verdict for any repository and version. This is a
+          read call. It needs no wallet and costs nothing.
+        </p>
+        <form class="panel" id="verify-form" autocomplete="off">
+          <div class="row">
+            <label>owner<input id="v-owner" placeholder="acme" /></label>
+            <label>repo<input id="v-repo" placeholder="widget" /></label>
+            <label>version<input id="v-version" placeholder="v2.0.0" /></label>
+          </div>
+          <button type="submit" class="btn">Read verdict</button>
+        </form>
+        <div id="verify-result" class="result" hidden></div>
+      </section>
+
+      <!-- Request panel -->
+      <section class="band" id="request">
+        <h2>Request an attestation</h2>
+        <p class="section-lede">
+          Submit a release for judgment. This is a write. It requires a browser
+          wallet on Testnet Bradbury and sends one transaction. The verdict is
+          decided by validators, not by this page.
+        </p>
+        <form class="panel" id="request-form" autocomplete="off">
+          <div class="row">
+            <label>owner<input id="r-owner" placeholder="acme" required /></label>
+            <label>repo<input id="r-repo" placeholder="widget" required /></label>
+          </div>
+          <div class="row">
+            <label>base tag<input id="r-base" placeholder="v1.0.0" required /></label>
+            <label>head tag<input id="r-head" placeholder="v2.0.0" required /></label>
+          </div>
+          <label class="full"
+            >changelog URL<input
+              id="r-changelog"
+              type="url"
+              placeholder="https://github.com/acme/widget/releases/tag/v2.0.0"
+              required
+          /></label>
+          <div class="actions">
+            <button type="button" class="btn ghost" id="connect-btn">
+              Connect wallet
+            </button>
+            <button type="submit" class="btn" id="submit-btn" disabled>
+              Submit request
+            </button>
+          </div>
+        </form>
+        <div id="request-result" class="result" hidden></div>
+      </section>
+
+      <!-- Integrate -->
+      <section class="band" id="integrate">
+        <h2>Integrate</h2>
+        <p class="section-lede">
+          Gate a dependency upgrade in CI on the on-chain verdict using the
+          GenLayer JS SDK. Reads require no key.
+        </p>
+        <pre class="code"><code>import { createClient } from "genlayer-js";
+import { testnetBradbury } from "genlayer-js/chains";
+
+const client = createClient({ chain: testnetBradbury });
+
+const a = await client.readContract({
+  address: CONTRACT_ADDRESS,
+  functionName: "get_attestation",
+  args: ["acme", "widget", "v2.0.0"],
+});
+
+if (a.verdict === "MISLEADING" || !a.exists) {
+  process.exit(1); // block the upgrade
+}</code></pre>
+
+        <h3 class="sub">Contract methods</h3>
+        <table class="methods">
+          <thead>
+            <tr><th>Method</th><th>Kind</th><th>Arguments</th><th>Returns</th></tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td>get_attestation</td><td>view</td>
+              <td>repo_owner, repo_name, version</td><td>attestation dict</td>
+            </tr>
+            <tr>
+              <td>total_attestations</td><td>view</td><td>none</td><td>count</td>
+            </tr>
+            <tr>
+              <td>list_recent</td><td>view</td><td>limit</td><td>list of attestations</td>
+            </tr>
+            <tr>
+              <td>request_attestation</td><td>write</td>
+              <td>repo_owner, repo_name, base_tag, head_tag, changelog_url</td>
+              <td>none</td>
+            </tr>
+            <tr>
+              <td>dispute_attestation</td><td>write</td>
+              <td>repo_owner, repo_name, version, note</td><td>none</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="foot-grid">
+        <div>
+          <span class="foot-label">NETWORK</span>
+          <span>GenLayer Testnet Bradbury</span>
+          <span class="mono">chainId 4221</span>
+        </div>
+        <div>
+          <span class="foot-label">CONTRACT</span>
+          <a
+            class="mono"
+            id="foot-address"
+            href="https://explorer-bradbury.genlayer.com/address/0xcEE50E1b7581e0cb2c73b478126d914c65DbFBed"
+            target="_blank"
+            rel="noreferrer"
+            >0xcEE50E1b7581e0cb2c73b478126d914c65DbFBed</a
+          >
+        </div>
+        <div>
+          <span class="foot-label">DEPLOY TX</span>
+          <a
+            class="mono"
+            href="https://explorer-bradbury.genlayer.com/tx/0x1efdc3358afa0a8a2c7a1b6f405d2e698bdc972e2c0cb8a917a748427b46e344"
+            target="_blank"
+            rel="noreferrer"
+            >0x1efdc335…7b46e344</a
+          >
+        </div>
+        <div>
+          <span class="foot-label">SOURCE</span>
+          <a
+            class="mono gh-foot"
+            href="https://github.com/gihakman/veritalog-protocol"
+            target="_blank"
+            rel="noreferrer"
+          >
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
+              <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
+            </svg>
+            gihakman/veritalog-protocol
+          </a>
+        </div>
+      </div>
+      <p class="foot-note">
+        VeritaLog is an Intelligent Contract running on GenLayer. Verdicts are
+        produced by validator consensus, not by this website.
+      </p>
+    </footer>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
