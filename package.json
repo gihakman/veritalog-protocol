@@ -1,0 +1,20 @@
+{
+  "name": "veritalog",
+  "version": "0.1.0",
+  "private": true,
+  "description": "VeritaLog - trustless changelog attestation protocol on GenLayer.",
+  "type": "module",
+  "scripts": {
+    "deploy": "tsx deploy/deploy.ts",
+    "deploy:cli": "genlayer deploy",
+    "network": "genlayer network set testnet-bradbury"
+  },
+  "dependencies": {
+    "genlayer-js": "1.1.8"
+  },
+  "devDependencies": {
+    "genlayer": "0.39.2",
+    "tsx": "4.23.0",
+    "typescript": "5.7.2"
+  }
+}
