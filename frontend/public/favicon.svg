@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-label="VeritaLog">
+  <rect width="64" height="64" rx="14" fill="#0b0f0d"/>
+  <!-- attestation seal: outer hexagon -->
+  <path d="M32 9 51 20 51 44 32 55 13 44 13 20Z"
+        fill="none" stroke="#232a26" stroke-width="2"/>
+  <path d="M32 14.5 46.2 22.75 46.2 41.25 32 49.5 17.8 41.25 17.8 22.75Z"
+        fill="none" stroke="#3fb950" stroke-width="2.5" stroke-linejoin="round"/>
+  <!-- diff-line accent bars -->
+  <rect x="23.5" y="27.5" width="9" height="2.6" rx="1" fill="#2f3833"/>
+  <rect x="23.5" y="33.9" width="6" height="2.6" rx="1" fill="#2f3833"/>
+  <!-- verified check -->
+  <path d="M25 33.5 30.2 39 41 26.5"
+        fill="none" stroke="#3fb950" stroke-width="4"
+        stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
