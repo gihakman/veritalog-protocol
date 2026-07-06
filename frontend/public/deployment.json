@@ -1,0 +1,8 @@
+{
+  "address": "0xcEE50E1b7581e0cb2c73b478126d914c65DbFBed",
+  "network": "testnet-bradbury",
+  "chainId": 4221,
+  "rpc": "https://rpc-bradbury.genlayer.com",
+  "explorer": "https://explorer-bradbury.genlayer.com",
+  "deployedAt": "2026-07-06T20:23:00.000Z"
+}
