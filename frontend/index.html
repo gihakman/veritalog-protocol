@@ -95,6 +95,21 @@
         <p class="stat" id="corpus-stat"></p>
       </section>
 
+      <!-- Recent attestations: live on-chain feed -->
+      <section class="band" id="recent">
+        <div class="recent-head">
+          <h2>Recent attestations</h2>
+          <button id="recent-refresh" class="btn ghost sm" type="button">Refresh</button>
+        </div>
+        <p class="section-lede">
+          The latest verdicts recorded on-chain. Click any row to inspect the full
+          record in the verify panel.
+        </p>
+        <div id="recent-list" class="recent-list">
+          <p class="msg">Loading recent attestations…</p>
+        </div>
+      </section>
+
       <!-- Problem -->
       <section class="band" id="problem">
         <h2>The gap</h2>

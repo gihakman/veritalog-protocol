@@ -3,6 +3,7 @@ import { getDeployment, isDeployed, type Deployment } from "./config";
 import {
   getAttestation,
   totalAttestations,
+  listRecent,
   requestAttestation,
   connectWallet,
   hasWallet,
@@ -131,6 +132,68 @@ function wireVerify(): void {
   });
 }
 
+function verdictClass(verdict: AttestationView["verdict"]): string {
+  return verdict === "ACCURATE"
+    ? "v-accurate"
+    : verdict === "PARTIAL"
+      ? "v-partial"
+      : verdict === "MISLEADING"
+        ? "v-misleading"
+        : "v-unverified";
+}
+
+function renderRecent(items: AttestationView[]): void {
+  const el = $("recent-list");
+  if (!items.length) {
+    el.innerHTML =
+      `<p class="msg">No attestations recorded yet. Be the first: request one below.</p>`;
+    return;
+  }
+  el.innerHTML = items
+    .map((a) => {
+      const version = a.head_tag || a.key.split("@")[1] || "";
+      return (
+        `<button class="rec-row" data-owner="${esc(a.repo_owner)}" data-repo="${esc(a.repo_name)}" data-version="${esc(version)}">` +
+        `<span class="${verdictClass(a.verdict)}"><span class="badge">${a.verdict}</span></span>` +
+        `<span class="rec-key mono">${esc(a.key)}${a.disputed ? ' <span class="rec-flag">disputed</span>' : ""}</span>` +
+        `<span class="rec-reason">${esc(a.reason) || "no reason recorded"}</span>` +
+        `</button>`
+      );
+    })
+    .join("");
+  el.querySelectorAll<HTMLButtonElement>(".rec-row").forEach((row) => {
+    row.addEventListener("click", () => {
+      const t = $("verify-result");
+      void doLookup(
+        row.dataset.owner ?? "",
+        row.dataset.repo ?? "",
+        row.dataset.version ?? "",
+        t,
+      );
+      t.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
+  });
+}
+
+async function loadRecent(): Promise<void> {
+  const el = $("recent-list");
+  if (!deployment || !isDeployed(deployment)) {
+    el.innerHTML = `<p class="msg">Contract not deployed yet.</p>`;
+    return;
+  }
+  el.innerHTML = `<p class="msg">Loading recent attestations…</p>`;
+  try {
+    renderRecent(await listRecent(15));
+  } catch (err) {
+    el.innerHTML = `<p class="msg">Could not load recent attestations: ${esc(explainError(err))}</p>`;
+  }
+}
+
+function wireRecent(): void {
+  const btn = document.getElementById("recent-refresh");
+  btn?.addEventListener("click", () => void loadRecent());
+}
+
 function wireRequest(): void {
   const connectBtn = $<HTMLButtonElement>("connect-btn");
   const submitBtn = $<HTMLButtonElement>("submit-btn");
@@ -214,6 +277,8 @@ function wireRequest(): void {
       note = `Attestation for ${owner}/${repo}@${head} is recorded. Reading it back…`;
       render(steps.length - 1);
       void doLookup(owner, repo, head, $("verify-result"));
+      void loadRecent();
+      void initFooterAndStats();
       $("verify-result").scrollIntoView({ behavior: "smooth", block: "center" });
     } catch (err) {
       // Figure out which step was in flight to mark it failed.
@@ -249,4 +314,8 @@ async function initFooterAndStats(): Promise<void> {
 wireHero();
 wireVerify();
 wireRequest();
-void initFooterAndStats();
+wireRecent();
+void (async () => {
+  await initFooterAndStats();
+  await loadRecent();
+})();

@@ -272,6 +272,74 @@ h3 {
 .btn.ghost:hover {
   background: var(--surface-3);
 }
+.btn.sm {
+  padding: 6px 12px;
+  font-size: 12px;
+}
+
+/* ---- Recent attestations feed ---- */
+.recent-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.recent-head h2 {
+  margin: 0 0 20px;
+}
+.recent-list {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  background: var(--surface-2);
+}
+.recent-list .msg {
+  padding: 18px 20px;
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+.rec-row {
+  display: grid;
+  grid-template-columns: 116px minmax(0, 1.1fr) minmax(0, 1.4fr);
+  gap: 14px;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-top: 1px solid var(--border);
+  padding: 13px 20px;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--text);
+  transition: background 120ms ease;
+}
+.rec-row:first-child {
+  border-top: none;
+}
+.rec-row:hover {
+  background: var(--surface-3);
+}
+.rec-key {
+  font-size: 13px;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rec-reason {
+  font-size: 13px;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.rec-flag {
+  color: var(--partial);
+  font-family: var(--mono);
+  font-size: 11px;
+}
 
 /* ---- Problem ---- */
 .cols {
